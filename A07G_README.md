@@ -28,8 +28,10 @@ Software Requirements Specification (SRS)
 **SRS 08:** The system shall read real-time data from the weight sensor to adjust the intervals of drinking water.
 
 ### Block Diagram
-![alt text](A07G_1.png)
+![alt text](A07G_block_diagram.png)
 
+### Flowchart
+![alt text](A07G_floachart.jpg)
 ## 2. Understanding the Starter Code
 ##### What does “InitializeSerialConsole()” do? In said function, what is “cbufRx” and “cbufTx”? What type of data structure is it? 
 This function:
@@ -94,3 +96,12 @@ The callback drains the buffer one byte at a time, sending each over UART.
 ##### Draw a diagram that explains the program flow for the UART transmission – starting from a string added by the program to the circular buffer “cbufTx” and ending on characters being shown on the screen of a PC (On Teraterm, for example). Please make reference to specific functions in the starter code. 
 
 ##### What is done on the function “startStasks()” in main.c? How many threads are started?
+The StartTasks() function is responsible for:
+* Printing current heap size before starting any tasks.
+* Creating the CLI thread using FreeRTOS.
+* Logging an error if task creation fails.
+
+Only 1 thread is started:
+* Name: "CLI_TASK"
+* Function: vCommandConsoleTask
+* Purpose: Runs the CLI (Command Line Interface) loop that reads user input and responds.
