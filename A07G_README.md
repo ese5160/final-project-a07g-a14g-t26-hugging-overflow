@@ -125,3 +125,34 @@ Only 1 thread is started:
 * Name: "CLI_TASK"
 * Function: vCommandConsoleTask
 * Purpose: Runs the CLI (Command Line Interface) loop that reads user input and responds.
+
+## **3. Debug Logger Module**
+
+See the documents.
+
+## 4. **Wiretap the convo!**
+
+1. What nets must you attach the logic analyzer to? (Check how the firmware sets up the UART in SerialConsole.c!)
+   I need to attach the logic analyzer to the UART TX and RX nets and a common ground. From the datasheet, we can see the TX and RX pins are PB10 and PB11.
+
+   ![1742849350966](image/A07G_README/1742849350966.png)
+2. Where on the circuit board can you attach / solder to?
+
+   From the datasheet, we can see the TX and RX pins are PB10 and PB11. So i can attach the pins of the analyser to GND on the board, PB10 and PB11 and read the serial.
+3. What are critical settings for the logic analyzer?
+
+   First set the analyzers to be Async Serial, then, critical settings include the correct sample rate, proper triggering, and baud rate(115200 in this case) alignment to ensure accurate capture of the UART signals. The color of lines are correspondent to colors of wires.
+
+   ![1742849885902](image/A07G_README/1742849885902.png)
+
+   ![1742849180642](image/A07G_README/1742849180642.png)
+
+   File: see Test1.sal in the repo.
+
+## 5. **Complete the CLI**
+
+See the documents.
+
+## **6. Add CLI commands**
+
+Link of Video: https://youtube.com/shorts/1Dk-mnguCtk

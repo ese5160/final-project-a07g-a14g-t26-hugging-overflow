@@ -27,6 +27,10 @@
  * Includes
  ******************************************************************************/
 #include "SerialConsole.h"
+#include <stdarg.h>   
+#include <stdio.h>    
+#include <string.h>
+#include <CliThread.h>
 
 /******************************************************************************
  * Defines
@@ -149,11 +153,56 @@ void setLogLevel(enum eDebugLogLevels debugLevel)
 /**
  * @brief Logs a message at the specified debug level.
  */
+// void LogMessage(enum eDebugLogLevels level, const char *format, ...)
+// {
+//     // Todo: Implement Debug Logger
+// 	// More detailed descriptions are in header file
+// }
+
+
+
+/**
+ * @brief Logs a message with a specified debug level.
+ *
+ * This function formats a log message using a variable argument list and sends it to
+ * the serial console if the provided log level meets or exceeds the current global log level.
+ *
+ * @param level The debug log level for the message.
+ * @param format A printf-style format string for the log message.
+ * @param ... Additional arguments corresponding to the format string.
+ */
 void LogMessage(enum eDebugLogLevels level, const char *format, ...)
 {
-    // Todo: Implement Debug Logger
-	// More detailed descriptions are in header file
+    //Check if the current log level meets the output criteria.
+    if (level < getLogLevel()) {
+        // If the provided log level is lower than the current global log level,eturn immediately without outputting.
+        return;
+    }
+
+    // Define a local buffer to store the final output string.
+    char logBuffer[256];11
+
+    //Process the variable argument list.
+    va_list args;
+    va_start(args, format);
+
+
+    vsnprintf(logBuffer, sizeof(logBuffer), format, args);
+
+    va_end(args);
+
+    // Directly write the formatted string to the serial console.
+    SerialConsoleWriteString(logBuffer);
 }
+
+
+
+
+
+
+
+
+
 
 /*
 COMMAND LINE INTERFACE COMMANDS
@@ -220,8 +269,16 @@ static void configure_usart_callbacks(void)
  *****************************************************************************/
 void usart_read_callback(struct usart_module *const usart_module)
 {
-	// ToDo: Complete this function 
+	// 将接收到的字符存入环形缓冲区
+	circular_buf_put(cbufRx, latestRx);
+	
+	// 通知 CLI 线程有新字符到来
+	xSemaphoreGive(xRxSemaphore);
+	
+	// 重新启动 UART 读取任务，准备接收下一个字符
+	usart_read_buffer_job(&usart_instance, (uint8_t *)&latestRx, 1);
 }
+
 
 /**************************************************************************/ 
 /**

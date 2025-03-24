@@ -14,12 +14,15 @@
 /******************************************************************************
  * Defines
  ******************************************************************************/
+#define FIRMWARE_VERSION "0.0.1"
 
 /******************************************************************************
  * Variables
  ******************************************************************************/
 static int8_t *const pcWelcomeMessage =
     "FreeRTOS CLI.\r\nType Help to view a list of registered commands.\r\n";
+	
+SemaphoreHandle_t xRxSemaphore = NULL;
 
 // Clear screen command
 const CLI_Command_Definition_t xClearScreen =
@@ -36,6 +39,9 @@ static const CLI_Command_Definition_t xResetCommand =
         (const pdCOMMAND_LINE_CALLBACK)CLI_ResetDevice,
         0};
 
+
+
+
 /******************************************************************************
  * Forward Declarations
  ******************************************************************************/
@@ -48,12 +54,71 @@ static void FreeRTOS_read(char *character);
  * CLI Thread
  ******************************************************************************/
 
+/**
+ * @brief CLI command callback to print the firmware version.
+ *
+ * This function writes the firmware version string defined in FIRMWARE_VERSION
+ * to the output buffer.
+ */
+BaseType_t CLI_VersionCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString)
+{
+    snprintf((char*)pcWriteBuffer, xWriteBufferLen, "%s\r\n", FIRMWARE_VERSION);
+    return pdFALSE;
+}
+
+/**
+ * @brief Version command definition.
+ *
+ * The "version" command prints the firmware version.
+ */
+const CLI_Command_Definition_t xVersionCommand =
+{
+    "version",                                /**< Command name */
+    "version: Prints the firmware version\r\n", /**< Help string */
+    CLI_VersionCommand,                       /**< Command callback function */
+    0                                         /**< Number of expected parameters */
+};
+
+/**
+ * @brief CLI command callback to print the tick count.
+ *
+ * This function writes the tick count since the scheduler started to the output buffer.
+ *
+ */
+BaseType_t CLI_TicksCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString)
+{
+    TickType_t tickCount = xTaskGetTickCount();
+    snprintf((char*)pcWriteBuffer, xWriteBufferLen, "%u\r\n", (unsigned int)tickCount);
+    return pdFALSE;
+}
+
+/**
+ * @brief Ticks command definition.
+ *
+ * The "ticks" command prints the number of ticks since the scheduler started.
+ */
+const CLI_Command_Definition_t xTicksCommand =
+{
+    "ticks",                                       /**< Command name */
+    "ticks: Prints the number of ticks since the scheduler started\r\n", /**< Help string */
+    CLI_TicksCommand,                              /**< Command callback function */
+    0                                            /**< Number of expected parameters */
+};
+
+
+
 void vCommandConsoleTask(void *pvParameters)
 {
     // REGISTER COMMANDS HERE
 
     FreeRTOS_CLIRegisterCommand(&xClearScreen);
     FreeRTOS_CLIRegisterCommand(&xResetCommand);
+	FreeRTOS_CLIRegisterCommand(&xVersionCommand);
+	FreeRTOS_CLIRegisterCommand(&xTicksCommand);
+	
+	xRxSemaphore = xSemaphoreCreateBinary();
+// 	if (xRxSemaphore == NULL) {
+// 		SerialConsoleWriteString("ERR: xRxSemaphore failed to create\r\n");
 
     uint8_t cRxedChar[2], cInputIndex = 0;
     BaseType_t xMoreDataToFollow;
@@ -207,18 +272,28 @@ void vCommandConsoleTask(void *pvParameters)
     }
 }
 
-/**************************************************************************/ /**
- * @fn			void FreeRTOS_read(char* character)
- * @brief		STUDENTS TO COMPLETE. This function block the thread unless we received a character. How can we do this?
-                 There are multiple solutions! Check all the inter-thread communications available! See https://www.freertos.org/a00113.html
- * @details		STUDENTS TO COMPLETE.
- * @note
- *****************************************************************************/
+/**
+ * @brief Reads a character from the serial console in a blocking manner.
+ *
+ * This function blocks indefinitely by waiting for the semaphore until a character
+ * is available. Once the semaphore is taken, it reads a character from the receive buffer
+ * using SerialConsoleReadCharacter().
+ *
+ * @param character Pointer to a variable where the received character will be stored.
+ */
 static void FreeRTOS_read(char *character)
 {
-    // ToDo: Complete this function
-    vTaskSuspend(NULL); // We suspend ourselves. Please remove this when doing your code
+    // Block until a character is available (wait indefinitely for the semaphore)
+    xSemaphoreTake(xRxSemaphore, portMAX_DELAY);
+    
+    // Read a character from the receive buffer.
+    // If SerialConsoleReadCharacter() returns -1, it indicates a failure.
+    if (SerialConsoleReadCharacter((uint8_t *)character) == -1)
+    {
+        // failure
+    }
 }
+
 
 /******************************************************************************
  * CLI Functions - Define here
@@ -242,3 +317,5 @@ BaseType_t CLI_ResetDevice(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const 
     system_reset();
     return pdFALSE;
 }
+
+
